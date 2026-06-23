@@ -5,6 +5,7 @@
 // this lab asks you to find and fix.
 
 let currentUser = null; // { username, name }
+let sessionToken = null;
 
 async function login() {
   const username = document.getElementById("username").value.trim();
@@ -23,6 +24,8 @@ async function login() {
 
   const data = await res.json();
   currentUser = { username: data.username, name: data.name };
+  sessionToken = data.token;
+  localStorage.setItem("token", data.token);
 
   // --- Role/session state is kept entirely on the client. ---
   localStorage.setItem("role", data.role);
@@ -107,7 +110,7 @@ async function decide(id, decision) {
   await fetch(`/api/requests/${id}/decision`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision, actingRole: localStorage.getItem("role") }),
+    body: JSON.stringify({ decision, token: localStorage.getItem("token") }),
   });
   loadPendingRequests();
   loadMyRequests();

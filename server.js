@@ -20,11 +20,14 @@ const USERS = {
 };
 
 let nextId = 4;
+const SESSIONS = {};
+
 const REQUESTS = [
   { id: 1, owner: "alice", amount: 42.5, category: "Travel", description: "Taxi to client site", status: "Pending" },
   { id: 2, owner: "bob", amount: 120.0, category: "Equipment", description: "USB-C dock", status: "Pending" },
   { id: 3, owner: "alice", amount: 18.0, category: "Meals", description: "Team lunch", status: "Approved" },
 ];
+
 
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css" };
 
@@ -80,7 +83,9 @@ const server = http.createServer((req, res) => {
       if (!user || user.password !== password) {
         return send(res, 401, { error: "Invalid credentials" });
       }
-      return send(res, 200, { username, role: user.role, name: user.name });
+      const token = Math.random().toString(36).slice(2);
+      SESSIONS[token] = { username, role: user.role };
+        return send(res, 200, { username, role: user.role, name: user.name, token });
     });
   }
 
@@ -112,12 +117,13 @@ const server = http.createServer((req, res) => {
   const decisionMatch = pathname.match(/^\/api\/requests\/(\d+)\/decision$/);
   if (req.method === "POST" && decisionMatch) {
     return readBody(req, body => {
-      const { decision, actingRole } = body;
+      const { decision, token } = body;
 
-      if (actingRole !== "manager") {
+      const session = SESSIONS[token];
+
+      if (!session || session.role !== "manager") {
         return send(res, 403, { error: "Only managers can approve or reject requests" });
       }
-
       const id = parseInt(decisionMatch[1], 10);
       const reqItem = REQUESTS.find(r => r.id === id);
       if (!reqItem) return send(res, 404, { error: "Request not found" });
